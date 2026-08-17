@@ -463,6 +463,7 @@ function changeById(id,key,value){
    if(key==="deposits" || key==="registrations") p[key]=Math.floor(p[key]);
  }
  render();
+ persistMonthAfterEdit();
 }
 function openMemberModal(){
  const modal=document.getElementById("memberModalBackdrop");
@@ -679,7 +680,7 @@ document.getElementById("newMemberName").addEventListener("keydown",(e)=>{
 
 
 const MONTH_STORAGE_KEY="utoCapitalManagementMonthlyDataV1";
-let currentMonth="2026-08";
+let currentMonth=localStorage.getItem("utoCapitalCurrentMonth") || "2026-08";
 let monthStore={};
 
 function cloneData(value){
@@ -741,6 +742,7 @@ function applyMonth(monthKey){
  }
 
  currentMonth=monthKey;
+ try{localStorage.setItem("utoCapitalCurrentMonth",currentMonth);}catch(e){}
  team=cloneData(monthStore[monthKey].team);
  countries=cloneData(monthStore[monthKey].countries);
 
@@ -781,6 +783,11 @@ renderCountries();
 document.getElementById("monthPicker").addEventListener("change",(e)=>{
  if(!e.target.value) return;
  applyMonth(e.target.value);
+});
+
+
+window.addEventListener("beforeunload",()=>{
+ try{persistMonthAfterEdit();}catch(e){}
 });
 
 const menuBtn=document.getElementById("menuBtn");
