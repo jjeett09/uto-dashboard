@@ -1,0 +1,76 @@
+name: Deploy UTO Dashboard to private UUID path
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build private dashboard
+        env:
+          DASHBOARD_UUID_PATH: ${{ secrets.DASHBOARD_UUID_PATH }}
+        run: |
+          set -e
+
+          if [ -z "$DASHBOARD_UUID_PATH" ]; then
+            echo "DASHBOARD_UUID_PATH secret is missing"
+            exit 1
+          fi
+
+          rm -rf _site
+          mkdir -p "_site/public/dashboard/$DASHBOARD_UUID_PATH"
+
+          cp index.html "_site/public/dashboard/$DASHBOARD_UUID_PATH/index.html"
+
+          cat > "_site/robots.txt" <<'EOF'
+          User-agent: *
+          Disallow: /
+          EOF
+
+          cat > "_site/404.html" <<'EOF'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+            <title>Not Found</title>
+          </head>
+          <body>
+            <h1>404</h1>
+            <p>Page not found.</p>
+          </body>
+          </html>
+          EOF
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "_site"
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
